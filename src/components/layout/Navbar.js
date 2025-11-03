@@ -95,24 +95,19 @@ const MENU_BY_ROLE = {
     { text: 'Bulk Upload', path: '/dealer/bulk',       icon: CloudUpload },
     { text: 'Results',     path: '/dealer/results',    icon: Assessment },
     { text: 'User Management', path: '/dealer/users',  icon: People }
-  ],
-  dealer_user: [
-    { text: 'New Analysis',path: '/dealer-user/new',    icon: Analytics },
-    { text: 'Bulk Upload', path: '/dealer-user/bulk',   icon: CloudUpload },
-    { text: 'Results',     path: '/dealer-user/results',icon: Assessment }
   ]
 };
 
 const ROLE_LABEL = {
   super_admin : 'Super Admin',
   dealer_admin: 'Dealer Admin',
-  dealer_user : 'Dealer User'
+ 
 };
 
 const ROLE_COLOR = {
   super_admin : BMW_THEME.primary,
   dealer_admin: BMW_THEME.accent,
-  dealer_user : BMW_THEME.success
+  
 };
 
 /* 3 ──────────────────────────────────
