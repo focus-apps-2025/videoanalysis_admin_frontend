@@ -38,12 +38,7 @@ export default function App() {
             <Route path="/dealer/users" element={<Layout><DealerUsers /></Layout>} />
 
           </Route>
-           <Route element={<ProtectedRoute roles={["dealer_user"]} />}> 
-            <Route path="/dealer-user/new" element={<Layout><DealerUserNewAnalysis /></Layout>} />
-            <Route path="/dealer-user/bulk" element={<Layout><DealerUserBulkUpload /></Layout>} />
-            <Route path="/dealer-user/results" element={<Layout><DealerUserResults /></Layout>} />
-          </Route>
-          
+
 
 
           <Route path="/" element={<Navigate to="/login" replace />} />
