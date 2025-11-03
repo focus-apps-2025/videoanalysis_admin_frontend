@@ -14,9 +14,7 @@ import NewAnalysis from './pages/dealer-admin/NewAnalysis';
 import BulkUpload from './pages/dealer-admin/BulkUpload';
 import Results from './pages/dealer-admin/Results';
 import DealerUsers from './pages/dealer-admin/Users';
-import DealerUserNewAnalysis from './pages/dealer-user/NewAnalysis';
-import DealerUserBulkUpload from './pages/dealer-user/BulkUpload';
-import DealerUserResults from './pages/dealer-user/Results'
+
 
 export default function App() {
   return (
