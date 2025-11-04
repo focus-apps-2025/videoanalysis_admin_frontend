@@ -4,7 +4,7 @@ import { setAuthToken } from '../services/api';
 
 export const AuthContext = createContext(null);
 
-const API_BASE = 'https://72.60.96.50';
+const API_BASE = 'https://videoapi.focusengineeringapp.com';
 
 export default function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
