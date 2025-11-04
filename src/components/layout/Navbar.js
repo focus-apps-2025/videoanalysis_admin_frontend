@@ -99,7 +99,6 @@ export default function Navbar() {
   const [editForm, setEditForm] = useState({
     username: '',
     email: '',
-    currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
@@ -119,7 +118,6 @@ export default function Navbar() {
     setEditForm({
       username: user?.username || '',
       email: user?.email || '',
-      currentPassword: '',
       newPassword: '',
       confirmPassword: ''
     });
@@ -158,13 +156,8 @@ export default function Navbar() {
       return;
     }
 
-    // Password validation if any password field is filled
-    if (editForm.newPassword || editForm.confirmPassword || editForm.currentPassword) {
-      if (!editForm.currentPassword) {
-        setError('Current password is required to change password');
-        return;
-      }
-
+    // Password validation if passwords are provided
+    if (editForm.newPassword || editForm.confirmPassword) {
       if (editForm.newPassword !== editForm.confirmPassword) {
         setError('New passwords do not match');
         return;
@@ -186,9 +179,8 @@ export default function Navbar() {
         email: editForm.email.trim(),
       };
 
-      // Only include password fields if they are being changed
+      // Only include new password if provided
       if (editForm.newPassword) {
-        updateData.current_password = editForm.currentPassword;
         updateData.new_password = editForm.newPassword;
       }
 
@@ -202,7 +194,6 @@ export default function Navbar() {
         setEditForm({
           username: '',
           email: '',
-          currentPassword: '',
           newPassword: '',
           confirmPassword: ''
         });
@@ -221,7 +212,6 @@ export default function Navbar() {
     setEditForm({
       username: '',
       email: '',
-      currentPassword: '',
       newPassword: '',
       confirmPassword: ''
     });
@@ -609,8 +599,6 @@ export default function Navbar() {
                 }}
               />
               
-             
-              
               {/* New Password */}
               <TextField
                 label="New Password"
@@ -620,7 +608,7 @@ export default function Navbar() {
                 fullWidth
                 size="small"
                 disabled={loading}
-                placeholder="Leave empty to keep current"
+                placeholder="Leave empty to keep current password"
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 1,
@@ -630,7 +618,7 @@ export default function Navbar() {
               
               {/* Confirm Password */}
               <TextField
-                label="Confirm Password"
+                label="Confirm New Password"
                 type="password"
                 value={editForm.confirmPassword}
                 onChange={handleEditChange('confirmPassword')}
