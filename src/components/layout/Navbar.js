@@ -19,7 +19,12 @@ import {
   Tooltip,
   useTheme,
   useMediaQuery,
-  Badge
+  TextField,
+  Button,
+  Alert,
+  CircularProgress,
+  Paper,
+  Fade
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -30,59 +35,34 @@ import {
   CloudUpload,
   Assessment,
   ExitToApp,
-  Notifications,
-  Settings
+  Person,
+  Edit,
+  Save,
+  Cancel,
+  Close
 } from '@mui/icons-material';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../contexts/AuthContext';
 
-/* 1 ──────────────────────────────────
-      Enhanced BMW Theme
-   ──────────────────────────────────── */
-export const BMW_THEME = {
-  // Primary Blues (BMW-inspired)
+// Professional BMW Theme Colors
+const BMW = {
   primary: '#1C69D4',
-  primaryDark: '#0A4B9C',
-  primaryLight: '#4D8FDF',
-  primaryUltraLight: '#E8F1FD',
-  
-  // Accent & Secondary
-  accent: '#FF6D00',
-  accentLight: '#FF9D45',
-  
-  // Neutrals
-  background: '#FFFFFF',
-  surface: '#F8FAFC',
-  surfaceElevated: '#FFFFFF',
-  border: '#E2E8F0',
-  borderLight: '#F1F5F9',
-  
-  // Text
-  textPrimary: '#1E293B',
-  textSecondary: '#64748B',
-  textTertiary: '#94A3B8',
-  
-  // Status
-  success: '#10B981',
-  successLight: '#D1FAE5',
-  warning: '#F59E0B',
-  warningLight: '#FEF3C7',
-  error: '#EF4444',
-  errorLight: '#FEE2E2',
-  
-  // Gradients
-  gradientPrimary: 'linear-gradient(135deg, #1C69D4 0%, #0A4B9C 100%)',
-  gradientAccent: 'linear-gradient(135deg, #FF6D00 0%, #FF8A00 100%)',
-  
-  // Shadows
-  shadowSm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-  shadowMd: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-  shadowLg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+  primaryDark: '#0D47A1',
+  primaryLight: '#5B9EED',
+  primaryUltraLight: '#EBF4FF',
+  white: '#FFFFFF',
+  background: '#FAFBFC',
+  surface: '#F5F7FA',
+  border: '#E1E6ED',
+  textPrimary: '#0A1929',
+  textSecondary: '#3E5060',
+  textTertiary: '#6B7A90',
+  accent: '#00A5E0',
+  success: '#00A86B',
+  error: '#D32F2F'
 };
 
-/* 2 ──────────────────────────────────
-      Central menu definition
-   ──────────────────────────────────── */
+// Menu configuration
 const MENU_BY_ROLE = {
   super_admin: [
     { text: 'Dashboard', path: '/super-admin/dashboard', icon: Dashboard },
@@ -90,95 +70,200 @@ const MENU_BY_ROLE = {
     { text: 'Dealer Network', path: '/super-admin/dealers', icon: Business }
   ],
   dealer_admin: [
-    { text: 'Dashboard',   path: '/dealer/dashboard',  icon: Dashboard },
-    { text: 'New Analysis',path: '/dealer/new',        icon: Analytics },
-    { text: 'Bulk Upload', path: '/dealer/bulk',       icon: CloudUpload },
-    { text: 'Results',     path: '/dealer/results',    icon: Assessment },
-    { text: 'User Management', path: '/dealer/users',  icon: People }
-  ]
+    { text: 'Dashboard', path: '/dealer/dashboard', icon: Dashboard },
+    { text: 'New Analysis', path: '/dealer/new', icon: Analytics },
+    { text: 'Bulk Upload', path: '/dealer/bulk', icon: CloudUpload },
+    { text: 'Results', path: '/dealer/results', icon: Assessment },
+    { text: 'User Management', path: '/dealer/users', icon: People }
+  ],
 };
 
 const ROLE_LABEL = {
-  super_admin : 'Super Admin',
+  super_admin: 'Super Admin',
   dealer_admin: 'Dealer Admin',
- 
 };
 
 const ROLE_COLOR = {
-  super_admin : BMW_THEME.primary,
-  dealer_admin: BMW_THEME.accent,
-  
+  super_admin: BMW.primary,
+  dealer_admin: BMW.accent,
 };
 
-/* 3 ──────────────────────────────────
-      Component
-   ──────────────────────────────────── */
 export default function Navbar() {
-  const { user, role, logout } = useContext(AuthContext);
-
-  /* router helpers */
-  const location      = useLocation();
-  const navigate      = useNavigate();
-
-  /* component state */
-  const [userAnchor,  setUserAnchor]  = useState(null);
-  const [notifAnchor, setNotifAnchor] = useState(null);
-  const [drawerOpen,  setDrawerOpen]  = useState(false);
-
-  /* responsive helpers */
-  const theme    = useTheme();
+  const { user, role, logout, updateProfile } = useContext(AuthContext);
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  const [userAnchor, setUserAnchor] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editBoxOpen, setEditBoxOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    username: '',
+    email: '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  
+  const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  /* helper funcs */
+  
   const isActive = (p) => location.pathname.startsWith(p);
-
   const toggleDrawer = () => setDrawerOpen(!drawerOpen);
   const openUserMenu = (e) => setUserAnchor(e.currentTarget);
   const closeUserMenu = () => setUserAnchor(null);
-  const openNotifMenu = (e) => setNotifAnchor(e.currentTarget);
-  const closeNotifMenu = () => setNotifAnchor(null);
 
-  /* drawer / side menu */
+  const handleEditClick = () => {
+    setEditForm({
+      username: user?.username || '',
+      email: user?.email || '',
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    });
+    setError('');
+    setSuccess('');
+    setEditBoxOpen(true);
+    closeUserMenu();
+  };
+
+  const handleEditChange = (field) => (e) => {
+    setEditForm(prev => ({
+      ...prev,
+      [field]: e.target.value
+    }));
+    // Clear errors when user starts typing
+    if (error) setError('');
+    if (success) setSuccess('');
+  };
+
+  const handleSaveProfile = async () => {
+    // Validation
+    if (!editForm.username.trim()) {
+      setError('Username is required');
+      return;
+    }
+
+    if (!editForm.email.trim()) {
+      setError('Email is required');
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(editForm.email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    // Password validation if any password field is filled
+    if (editForm.newPassword || editForm.confirmPassword || editForm.currentPassword) {
+      if (!editForm.currentPassword) {
+        setError('Current password is required to change password');
+        return;
+      }
+
+      if (editForm.newPassword !== editForm.confirmPassword) {
+        setError('New passwords do not match');
+        return;
+      }
+
+      if (editForm.newPassword.length < 6) {
+        setError('New password must be at least 6 characters long');
+        return;
+      }
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const updateData = {
+        username: editForm.username.trim(),
+        email: editForm.email.trim(),
+      };
+
+      // Only include password fields if they are being changed
+      if (editForm.newPassword) {
+        updateData.current_password = editForm.currentPassword;
+        updateData.new_password = editForm.newPassword;
+      }
+
+      await updateProfile(updateData);
+      
+      setSuccess('Profile updated successfully!');
+      
+      // Close box after success message
+      setTimeout(() => {
+        setEditBoxOpen(false);
+        setEditForm({
+          username: '',
+          email: '',
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+        setSuccess('');
+      }, 1500);
+      
+    } catch (err) {
+      setError(err.message || 'Failed to update profile. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditBoxOpen(false);
+    setEditForm({
+      username: '',
+      email: '',
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    });
+    setError('');
+    setSuccess('');
+  };
+
+  // Mobile drawer content
   const drawer = (
-    <Box sx={{ width: 280, height: '100%', background: BMW_THEME.surface }}>
+    <Box sx={{ width: 280, height: '100%', background: BMW.white }}>
       {/* Drawer Header */}
       <Box sx={{ 
         p: 3, 
-        background: BMW_THEME.gradientPrimary,
-        color: '#fff'
+        background: BMW.primary,
+        borderBottom: `1px solid ${BMW.border}`
       }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5, color: 'white' }}>
           CITNOW Analytics
         </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Avatar sx={{ 
-            width: 32, 
-            height: 32, 
+            width: 36, 
+            height: 36, 
             bgcolor: 'rgba(255,255,255,0.2)',
-            fontSize: '14px',
-            fontWeight: 600
+            fontSize: '15px',
+            fontWeight: 600,
+            color: 'white'
           }}>
             {(user?.username || 'U').charAt(0).toUpperCase()}
           </Avatar>
           <Box>
-            <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: 'white', lineHeight: 1.2 }}>
               {user?.username || 'User'}
             </Typography>
-            <Chip
-              label={ROLE_LABEL[role] || 'User'}
-              size="small"
-              sx={{
-                height: 20,
-                fontSize: '0.65rem',
-                bgcolor: 'rgba(255,255,255,0.2)',
-                color: '#fff',
-                fontWeight: 600
-              }}
-            />
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+              {ROLE_LABEL[role] || 'User'}
+            </Typography>
           </Box>
         </Box>
       </Box>
       
+      {/* Navigation Menu */}
       <List sx={{ p: 2 }}>
         {(MENU_BY_ROLE[role] || []).map(({ text, path, icon: Icon }) => (
           <ListItemButton
@@ -188,24 +273,23 @@ export default function Navbar() {
             selected={isActive(path)}
             onClick={toggleDrawer}
             sx={{
-              mb: 1,
-              borderRadius: 2,
+              mb: 0.5,
+              borderRadius: 1.5,
               '&.Mui-selected': {
-                background: BMW_THEME.gradientPrimary,
-                color: '#fff',
-                '& .MuiListItemIcon-root': { color: '#fff' },
+                background: BMW.primaryUltraLight,
+                color: BMW.primary,
+                '& .MuiListItemIcon-root': { color: BMW.primary },
                 '&:hover': {
-                  background: BMW_THEME.gradientPrimary,
-                  opacity: 0.9
+                  background: BMW.primaryUltraLight
                 }
               },
               '&:hover': {
-                backgroundColor: BMW_THEME.primaryUltraLight,
+                backgroundColor: BMW.surface
               }
             }}
           >
             <ListItemIcon sx={{ 
-              color: isActive(path) ? '#fff' : BMW_THEME.textSecondary,
+              color: isActive(path) ? BMW.primary : BMW.textTertiary,
               minWidth: 40
             }}>
               <Icon fontSize="small" />
@@ -214,7 +298,8 @@ export default function Navbar() {
               primary={text} 
               primaryTypographyProps={{
                 fontWeight: isActive(path) ? 600 : 500,
-                fontSize: '0.9rem'
+                fontSize: '0.9375rem',
+                color: isActive(path) ? BMW.primary : BMW.textPrimary
               }}
             />
           </ListItemButton>
@@ -223,70 +308,81 @@ export default function Navbar() {
     </Box>
   );
 
-  /* render */
   return (
     <>
+      {/* Main AppBar */}
       <AppBar
         position="fixed"
-        elevation={1}
+        elevation={0}
         sx={{
-          background: BMW_THEME.background,
-          borderBottom: `1px solid ${BMW_THEME.border}`,
-          boxShadow: BMW_THEME.shadowSm,
+          background: BMW.white,
+          borderBottom: `1px solid ${BMW.border}`,
           zIndex: theme.zIndex.drawer + 1
         }}
       >
         <Toolbar sx={{ 
           justifyContent: 'space-between',
-          minHeight: '70px !important'
+          minHeight: { xs: '64px', sm: '72px' },
+          px: { xs: 2, sm: 3 }
         }}>
-          {/* brand + burger */}
+          {/* Left: Logo + Menu */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             {isMobile && (
               <IconButton 
                 onClick={toggleDrawer}
                 sx={{
-                  color: BMW_THEME.textPrimary,
-                  '&:hover': { background: BMW_THEME.primaryUltraLight }
+                  color: BMW.textPrimary,
+                  '&:hover': { background: BMW.surface }
                 }}
               >
                 <MenuIcon />
               </IconButton>
             )}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            
+            {/* Logo */}
+            <Box 
+              component={RouterLink}
+              to="/"
+              sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1.5,
+                textDecoration: 'none'
+              }}
+            >
               <Box sx={{
-                width: 32,
-                height: 32,
-                borderRadius: 2,
-                background: BMW_THEME.gradientPrimary,
+                width: 36,
+                height: 36,
+                borderRadius: 1.5,
+                background: BMW.primary,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <Business sx={{ fontSize: 18, color: '#fff' }} />
+                <Business sx={{ fontSize: 20, color: 'white' }} />
               </Box>
-              <Typography variant="h5" sx={{ 
-                fontWeight: 700,
-                background: BMW_THEME.gradientPrimary,
-                backgroundClip: 'text',
-                textFillColor: 'transparent',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-              }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  fontWeight: 700,
+                  color: BMW.primary,
+                  display: { xs: 'none', sm: 'block' }
+                }}
+              >
                 CITNOW
               </Typography>
             </Box>
           </Box>
 
-          {/* desktop nav buttons */}
+          {/* Center: Desktop Navigation */}
           {!isMobile && (
             <Box sx={{ 
               display: 'flex', 
-              gap: 0.5,
-              background: BMW_THEME.surface,
-              borderRadius: 3,
+              gap: 1,
+              background: BMW.surface,
+              borderRadius: 2,
               p: 0.5,
-              border: `1px solid ${BMW_THEME.border}`
+              border: `1px solid ${BMW.border}`
             }}>
               {(MENU_BY_ROLE[role] || []).map(({ text, path, icon: Icon }) => (
                 <NavButton
@@ -301,33 +397,33 @@ export default function Navbar() {
             </Box>
           )}
 
-          {/* right side: notifications + user */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-           
-            {/* User Role Chip */}
+          {/* Right: Role + User */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            {/* Role Chip */}
             <Chip
               label={ROLE_LABEL[role] || 'User'}
               size="small"
               sx={{
                 display: { xs: 'none', sm: 'flex' },
-                background: `${ROLE_COLOR[role] || BMW_THEME.primary}15`,
-                color: ROLE_COLOR[role] || BMW_THEME.primary,
+                background: `${ROLE_COLOR[role] || BMW.primary}15`,
+                color: ROLE_COLOR[role] || BMW.primary,
                 fontWeight: 700,
                 height: 28,
-                fontSize: '0.75rem'
+                fontSize: '0.75rem',
+                border: `1px solid ${ROLE_COLOR[role] || BMW.primary}30`
               }}
             />
 
             {/* User Avatar */}
-            <Tooltip title="Account settings">
+            <Tooltip title="Account">
               <IconButton 
                 onClick={openUserMenu}
                 sx={{
                   p: 0.5,
-                  border: `2px solid ${BMW_THEME.border}`,
+                  border: `2px solid ${BMW.border}`,
                   '&:hover': { 
-                    borderColor: BMW_THEME.primary,
-                    background: BMW_THEME.primaryUltraLight
+                    borderColor: BMW.primary,
+                    background: BMW.primaryUltraLight
                   }
                 }}
               >
@@ -335,7 +431,7 @@ export default function Navbar() {
                   sx={{ 
                     width: 36, 
                     height: 36,
-                    bgcolor: BMW_THEME.gradientPrimary,
+                    bgcolor: BMW.primary,
                     fontWeight: 600,
                     fontSize: '14px'
                   }}
@@ -348,7 +444,7 @@ export default function Navbar() {
         </Toolbar>
       </AppBar>
 
-      {/* drawer for mobile */}
+      {/* Mobile Drawer */}
       <Drawer
         open={drawerOpen}
         onClose={toggleDrawer}
@@ -364,8 +460,6 @@ export default function Navbar() {
         {drawer}
       </Drawer>
 
-     
-
       {/* User Menu */}
       <Menu
         anchorEl={userAnchor}
@@ -373,42 +467,238 @@ export default function Navbar() {
         onClose={closeUserMenu}
         PaperProps={{
           sx: {
-            mt: 1,
-            minWidth: 200,
-            border: `1px solid ${BMW_THEME.border}`,
-            boxShadow: BMW_THEME.shadowLg,
+            mt: 1.5,
+            minWidth: 220,
+            border: `1px solid ${BMW.border}`,
             borderRadius: 2
           }
         }}
       >
-        <MenuItem disabled sx={{ 
-          fontWeight: 600, 
-          color: BMW_THEME.textPrimary,
-          flexDirection: 'column',
-          alignItems: 'flex-start'
-        }}>
-          <Typography variant="body2" fontWeight={600}>{user?.username || 'User'}</Typography>
-          <Typography variant="caption" color={BMW_THEME.textSecondary}>
+        <Box sx={{ px: 2, py: 1.5 }}>
+          <Typography variant="subtitle2" fontWeight={600} color={BMW.textPrimary}>
+            {user?.username || 'User'}
+          </Typography>
+          <Typography variant="caption" color={BMW.textSecondary}>
             {user?.email || 'user@example.com'}
           </Typography>
-        </MenuItem>
+        </Box>
         <Divider />
+        
+        {/* Edit Profile Menu Item */}
+        <MenuItem
+          onClick={handleEditClick}
+          sx={{ 
+            color: BMW.textPrimary,
+            py: 1.5,
+            '&:hover': {
+              background: BMW.surface
+            }
+          }}
+        >
+          <ListItemIcon>
+            <Edit fontSize="small" sx={{ color: BMW.textSecondary }} />
+          </ListItemIcon>
+          <Typography variant="body2" fontWeight={500}>Edit Profile</Typography>
+        </MenuItem>
+        
         <MenuItem
           onClick={() => { closeUserMenu(); logout(); }}
-          sx={{ color: BMW_THEME.error }}
+          sx={{ 
+            color: BMW.textPrimary,
+            py: 1.5,
+            '&:hover': {
+              background: BMW.surface
+            }
+          }}
         >
-          <ListItemIcon><ExitToApp fontSize="small" sx={{ color: BMW_THEME.error }} /></ListItemIcon>
-          Logout
+          <ListItemIcon>
+            <ExitToApp fontSize="small" sx={{ color: BMW.textSecondary }} />
+          </ListItemIcon>
+          <Typography variant="body2" fontWeight={500}>Logout</Typography>
         </MenuItem>
       </Menu>
 
-      {/* push page content below fixed bar */}
-      <Toolbar sx={{ minHeight: '70px !important' }}/>
+      {/* Compact Edit Profile Box (Top-Right Corner) */}
+      <Fade in={editBoxOpen}>
+        <Paper
+          elevation={8}
+          sx={{
+            position: 'fixed',
+            top: 80,
+            right: 16,
+            width: 320,
+            maxWidth: '90vw',
+            borderRadius: 2,
+            border: `1px solid ${BMW.border}`,
+            background: BMW.white,
+            zIndex: theme.zIndex.modal,
+            overflow: 'hidden'
+          }}
+        >
+          {/* Header */}
+          <Box sx={{ 
+            p: 2, 
+            background: BMW.primaryUltraLight,
+            borderBottom: `1px solid ${BMW.border}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <Typography variant="subtitle1" fontWeight={600} color={BMW.textPrimary}>
+              Edit Profile
+            </Typography>
+            <IconButton 
+              size="small" 
+              onClick={handleCancelEdit}
+              disabled={loading}
+              sx={{ 
+                color: BMW.textTertiary,
+                '&:hover': { 
+                  background: 'rgba(0,0,0,0.04)',
+                  color: BMW.textPrimary
+                }
+              }}
+            >
+              <Close fontSize="small" />
+            </IconButton>
+          </Box>
+          
+          {/* Content */}
+          <Box sx={{ p: 2.5 }}>
+            {error && (
+              <Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>
+                {error}
+              </Alert>
+            )}
+            
+            {success && (
+              <Alert severity="success" sx={{ mb: 2, borderRadius: 1 }}>
+                {success}
+              </Alert>
+            )}
+            
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {/* Username */}
+              <TextField
+                label="Username"
+                value={editForm.username}
+                onChange={handleEditChange('username')}
+                fullWidth
+                size="small"
+                disabled={loading}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 1,
+                  }
+                }}
+              />
+              
+              {/* Email */}
+              <TextField
+                label="Email"
+                type="email"
+                value={editForm.email}
+                onChange={handleEditChange('email')}
+                fullWidth
+                size="small"
+                disabled={loading}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 1,
+                  }
+                }}
+              />
+              
+             
+              
+              {/* New Password */}
+              <TextField
+                label="New Password"
+                type="password"
+                value={editForm.newPassword}
+                onChange={handleEditChange('newPassword')}
+                fullWidth
+                size="small"
+                disabled={loading}
+                placeholder="Leave empty to keep current"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 1,
+                  }
+                }}
+              />
+              
+              {/* Confirm Password */}
+              <TextField
+                label="Confirm Password"
+                type="password"
+                value={editForm.confirmPassword}
+                onChange={handleEditChange('confirmPassword')}
+                fullWidth
+                size="small"
+                disabled={loading}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 1,
+                  }
+                }}
+              />
+            </Box>
+            
+            {/* Actions */}
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 1, 
+              mt: 3,
+              justifyContent: 'flex-end'
+            }}>
+              <Button
+                onClick={handleCancelEdit}
+                size="small"
+                disabled={loading}
+                sx={{ 
+                  color: BMW.textSecondary,
+                  borderRadius: 1,
+                  px: 2,
+                  '&:hover': {
+                    background: BMW.surface
+                  }
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveProfile}
+                size="small"
+                variant="contained"
+                disabled={loading}
+                startIcon={loading ? <CircularProgress size={14} /> : <Save />}
+                sx={{
+                  background: BMW.primary,
+                  borderRadius: 1,
+                  px: 2,
+                  '&:hover': {
+                    background: BMW.primaryDark
+                  },
+                  '&.Mui-disabled': {
+                    background: BMW.textTertiary
+                  }
+                }}
+              >
+                {loading ? 'Saving' : 'Save'}
+              </Button>
+            </Box>
+          </Box>
+        </Paper>
+      </Fade>
+
+      {/* Toolbar spacer */}
+      <Toolbar sx={{ minHeight: { xs: '64px', sm: '72px' } }} />
     </>
   );
 }
 
-/* Enhanced NavButton Component */
+// Navigation Button Component
 function NavButton({ to, icon: Icon, active, children }) {
   return (
     <Box
@@ -423,19 +713,17 @@ function NavButton({ to, icon: Icon, active, children }) {
           gap: 1,
           px: 2,
           py: 1,
-          borderRadius: 2,
-          color: active ? BMW_THEME.primary : BMW_THEME.textSecondary,
-          background: active ? '#fff' : 'transparent',
+          borderRadius: 1.5,
+          color: active ? BMW.primary : BMW.textSecondary,
+          background: active ? BMW.white : 'transparent',
           fontWeight: 600,
           fontSize: '0.875rem',
-          boxShadow: active ? BMW_THEME.shadowSm : 'none',
-          border: active ? `1px solid ${BMW_THEME.border}` : '1px solid transparent',
-          transition: 'all 0.2s ease-in-out',
+          border: active ? `1px solid ${BMW.border}` : '1px solid transparent',
+          transition: 'all 0.2s ease',
           '&:hover': {
-            background: '#fff',
-            color: BMW_THEME.primary,
-            boxShadow: BMW_THEME.shadowSm,
-            border: `1px solid ${BMW_THEME.border}`
+            background: BMW.white,
+            color: BMW.primary,
+            border: `1px solid ${BMW.border}`
           }
         }}
       >
