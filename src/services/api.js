@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = 'https://72.60.96.50';
+const API_BASE = 'https://videoapi.focusengineeringapp.com';
 const api = axios.create({ baseURL: API_BASE });
 
 // Dynamically attach token from context
