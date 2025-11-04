@@ -19,4 +19,9 @@ export async function deleteUser(userId) {
   await api.delete(`/users/${userId}`);
 }
 
+export async function updateUserProfile(payload) {
+  const res = await api.put('/users/me', payload);
+  return res.data;
+}
+
 
