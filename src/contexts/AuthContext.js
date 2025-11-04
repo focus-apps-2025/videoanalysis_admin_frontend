@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { setAuthToken } from '../services/api';
+import { updateUserProfile } from '../services/users';
 
 export const AuthContext = createContext(null);
 
@@ -48,6 +49,27 @@ export default function AuthProvider({ children }) {
     setAuthToken(null);
   }, []);
 
+  // UPDATED: Use the imported function instead of direct axios call
+  const updateProfile = useCallback(async (profileData) => {
+  setLoading(true);
+  try {
+    const updatedUser = await updateUserProfile(profileData);
+
+    setUser(prevUser => ({
+      ...prevUser,
+      ...updatedUser
+    }));
+
+    return updatedUser;
+  } catch (error) {
+    const errorMessage = error.response?.data?.detail || 
+                        error.response?.data?.message || 
+                        'Failed to update profile';
+    throw new Error(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+}, []); // No token dependency needed since it's handled in api.js
   useEffect(() => {
     // Whenever token changes, update global axios header
     setAuthToken(token);
@@ -62,9 +84,10 @@ export default function AuthProvider({ children }) {
       loading,
       login,
       logout,
+      updateProfile, 
       API_BASE,
     }),
-    [token, user, role, isAuthenticated, loading, login, logout]
+    [token, user, role, isAuthenticated, loading, login, logout, updateProfile]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
