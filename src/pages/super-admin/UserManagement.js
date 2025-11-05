@@ -68,10 +68,11 @@ export default function UserManagement() {
     email: '',
     role: 'dealer_admin', // Default to dealer_admin
     password: '',
-    dealer_id: ''
+    dealer_id: '',
+    showroom_name: ''
   });
   const [error, setError] = useState('');
-  
+
   // Table state
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -100,7 +101,7 @@ export default function UserManagement() {
 
   useEffect(() => {
     if (!open) {
-      setForm({ username: '', email: '', role: 'dealer_admin', password: '', dealer_id: '' });
+      setForm({ username: '', email: '', role: 'dealer_admin', password: '', dealer_id: '', showroom_name: '' });
       setEditingUser(null);
       setError('');
     }
@@ -108,8 +109,8 @@ export default function UserManagement() {
 
   const handleCreate = async () => {
     setError('');
-    if (!form.username || !form.email || !form.password) {
-      setError('Username, email, and password are required');
+    if (!form.username || !form.email || !form.password || !form.showroom_name) {
+      setError('Username, email, password, and showroom name are required');
       return;
     }
     try {
@@ -126,8 +127,8 @@ export default function UserManagement() {
     if (!editingUser) return;
     setError('');
 
-    if (!form.username || !form.email) {
-      setError('Username and email are required');
+    if (!form.username || !form.email || !form.showroom_name) {
+      setError('Username, email, and showroom name are required');
       return;
     }
 
@@ -168,7 +169,8 @@ export default function UserManagement() {
       email: user.email || '',
       role: user.role || 'dealer_admin',
       password: '',
-      dealer_id: user.dealer_id || ''
+      dealer_id: user.dealer_id || '',
+      showroom_name: user.showroom_name || ''
     });
     setOpen(true);
   };
@@ -190,20 +192,20 @@ export default function UserManagement() {
 
   // Filtering and sorting
   const filteredUsers = users.filter(user => {
-    const matchesSearch = 
+    const matchesSearch =
       user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (user.dealer_id || '').toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    
+
     return matchesSearch && matchesRole;
   });
 
   const sortedUsers = [...filteredUsers].sort((a, b) => {
     const aValue = a[orderBy] || '';
     const bValue = b[orderBy] || '';
-    
+
     if (order === 'asc') {
       return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
     } else {
@@ -260,7 +262,7 @@ export default function UserManagement() {
             }}
             sx={{ flexGrow: 1, minWidth: 250 }}
           />
-          
+
           <TextField
             select
             size="small"
@@ -311,8 +313,8 @@ export default function UserManagement() {
             {searchQuery || roleFilter !== 'all' ? 'No users found' : 'No administrators yet'}
           </Typography>
           <Typography variant="body2" sx={{ color: BMW_THEME.textSecondary, mb: 3 }}>
-            {searchQuery || roleFilter !== 'all' 
-              ? 'Try adjusting your search or filters' 
+            {searchQuery || roleFilter !== 'all'
+              ? 'Try adjusting your search or filters'
               : 'Create your first administrator to get started'}
           </Typography>
           {!searchQuery && roleFilter === 'all' && (
@@ -359,6 +361,18 @@ export default function UserManagement() {
                       Role
                     </Typography>
                   </TableCell>
+                   <TableCell>
+                    <TableSortLabel
+                      active={orderBy === 'showroom_name'}
+                      direction={orderBy === 'showroom_name' ? order : 'asc'}
+                      onClick={() => handleRequestSort('showroom_name')}
+                    >
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                        Showroom Name
+                      </Typography>
+                    </TableSortLabel>
+                  </TableCell>
+
                   <TableCell>
                     <TableSortLabel
                       active={orderBy === 'dealer_id'}
@@ -370,6 +384,7 @@ export default function UserManagement() {
                       </Typography>
                     </TableSortLabel>
                   </TableCell>
+                 
                   <TableCell align="right">
                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                       Actions
@@ -379,7 +394,7 @@ export default function UserManagement() {
               </TableHead>
               <TableBody>
                 {paginatedUsers.map((user) => (
-                  <TableRow 
+                  <TableRow
                     key={user._id || user.id}
                     hover
                     sx={{ '&:hover': { bgcolor: BMW_THEME.hover } }}
@@ -425,7 +440,13 @@ export default function UserManagement() {
                       />
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" sx={{ 
+                      <Typography variant="body2" sx={{ fontWeight: 500, color: BMW_THEME.text }}>
+                        {user.showroom_name || '—'}
+                      </Typography>
+                    </TableCell>
+
+                    <TableCell>
+                      <Typography variant="body2" sx={{
                         fontFamily: 'monospace',
                         color: user.dealer_id ? BMW_THEME.text : BMW_THEME.textSecondary
                       }}>
@@ -438,7 +459,7 @@ export default function UserManagement() {
                           <IconButton
                             size="small"
                             onClick={() => handleEdit(user)}
-                            sx={{ 
+                            sx={{
                               color: BMW_THEME.primary,
                               '&:hover': { bgcolor: `${BMW_THEME.primary}10` }
                             }}
@@ -450,7 +471,7 @@ export default function UserManagement() {
                           <IconButton
                             size="small"
                             onClick={() => handleDelete(user._id || user.id)}
-                            sx={{ 
+                            sx={{
                               color: '#D32F2F',
                               '&:hover': { bgcolor: '#D32F2F10' }
                             }}
@@ -465,7 +486,7 @@ export default function UserManagement() {
               </TableBody>
             </Table>
           </TableContainer>
-          
+
           <TablePagination
             component="div"
             count={filteredUsers.length}
@@ -491,8 +512,8 @@ export default function UserManagement() {
           sx: { borderRadius: 2 }
         }}
       >
-        <DialogTitle sx={{ 
-          bgcolor: BMW_THEME.surface, 
+        <DialogTitle sx={{
+          bgcolor: BMW_THEME.surface,
           borderBottom: `1px solid ${BMW_THEME.border}`,
           fontWeight: 600
         }}>
@@ -584,11 +605,26 @@ export default function UserManagement() {
                 )
               }}
             />
+            <TextField
+              fullWidth
+              label="Showroom Name"
+              value={form.showroom_name}
+              onChange={(e) => setForm({ ...form, showroom_name: e.target.value })}
+              required
+              helperText="Enter the dealership/showroom name"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Business sx={{ color: BMW_THEME.textSecondary }} />
+                  </InputAdornment>
+                )
+              }}
+            />
           </Stack>
         </DialogContent>
 
         <DialogActions sx={{ px: 3, py: 2, bgcolor: BMW_THEME.surface }}>
-          <Button 
+          <Button
             onClick={() => setOpen(false)}
             sx={{ color: BMW_THEME.textSecondary }}
           >
