@@ -86,7 +86,7 @@ const MODERN_BMW_THEME = {
 };
 
 // Dealer User Base URL - UPDATED
-const DEALER_USER_BASE_URL = 'https://dealeruser.netlify.app';
+const DEALER_USER_BASE_URL = 'https://focus-user.focusengineeringapp.com';
 
 // User Card Component
 const UserCard = ({ user, onEdit, onDelete }) => (
