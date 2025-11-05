@@ -95,7 +95,7 @@ export default function Navbar() {
   const { user, role, logout, updateProfile } = useContext(AuthContext);
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   const [userAnchor, setUserAnchor] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editBoxOpen, setEditBoxOpen] = useState(false);
@@ -110,10 +110,10 @@ export default function Navbar() {
   const [success, setSuccess] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+
   const isActive = (p) => location.pathname.startsWith(p);
   const toggleDrawer = () => setDrawerOpen(!drawerOpen);
   const openUserMenu = (e) => setUserAnchor(e.currentTarget);
@@ -193,9 +193,9 @@ export default function Navbar() {
       }
 
       await updateProfile(updateData);
-      
+
       setSuccess('Profile updated successfully!');
-      
+
       // Close box after success message
       setTimeout(() => {
         setEditBoxOpen(false);
@@ -207,7 +207,7 @@ export default function Navbar() {
         });
         setSuccess('');
       }, 1500);
-      
+
     } catch (err) {
       setError(err.message || 'Failed to update profile. Please try again.');
     } finally {
@@ -231,8 +231,8 @@ export default function Navbar() {
   const drawer = (
     <Box sx={{ width: 280, height: '100%', background: BMW.white }}>
       {/* Drawer Header */}
-      <Box sx={{ 
-        p: 3, 
+      <Box sx={{
+        p: 3,
         background: BMW.primary,
         borderBottom: `1px solid ${BMW.border}`
       }}>
@@ -240,9 +240,9 @@ export default function Navbar() {
           CITNOW Analytics
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Avatar sx={{ 
-            width: 36, 
-            height: 36, 
+          <Avatar sx={{
+            width: 36,
+            height: 36,
             bgcolor: 'rgba(255,255,255,0.2)',
             fontSize: '15px',
             fontWeight: 600,
@@ -260,7 +260,7 @@ export default function Navbar() {
           </Box>
         </Box>
       </Box>
-      
+
       {/* Navigation Menu */}
       <List sx={{ p: 2 }}>
         {(MENU_BY_ROLE[role] || []).map(({ text, path, icon: Icon }) => (
@@ -286,14 +286,14 @@ export default function Navbar() {
               }
             }}
           >
-            <ListItemIcon sx={{ 
+            <ListItemIcon sx={{
               color: isActive(path) ? BMW.primary : BMW.textTertiary,
               minWidth: 40
             }}>
               <Icon fontSize="small" />
             </ListItemIcon>
-            <ListItemText 
-              primary={text} 
+            <ListItemText
+              primary={text}
               primaryTypographyProps={{
                 fontWeight: isActive(path) ? 600 : 500,
                 fontSize: '0.9375rem',
@@ -318,7 +318,7 @@ export default function Navbar() {
           zIndex: theme.zIndex.drawer + 1
         }}
       >
-        <Toolbar sx={{ 
+        <Toolbar sx={{
           justifyContent: 'space-between',
           minHeight: { xs: '64px', sm: '72px' },
           px: { xs: 2, sm: 3 }
@@ -326,7 +326,7 @@ export default function Navbar() {
           {/* Left: Logo + Menu */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             {isMobile && (
-              <IconButton 
+              <IconButton
                 onClick={toggleDrawer}
                 sx={{
                   color: BMW.textPrimary,
@@ -336,14 +336,14 @@ export default function Navbar() {
                 <MenuIcon />
               </IconButton>
             )}
-            
+
             {/* Logo */}
-            <Box 
+            <Box
               component={RouterLink}
               to="/"
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
                 gap: 1.5,
                 textDecoration: 'none'
               }}
@@ -359,23 +359,39 @@ export default function Navbar() {
               }}>
                 <Business sx={{ fontSize: 20, color: 'white' }} />
               </Box>
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  fontWeight: 700,
-                  color: BMW.primary,
-                  display: { xs: 'none', sm: 'block' }
-                }}
-              >
-                CITNOW
-              </Typography>
+              <Box>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 700,
+                    color: BMW.primary,
+                    display: { xs: 'block', sm: 'block' },
+                    lineHeight: 1.2
+                  }}
+                >
+                  {/* ✅ DYNAMIC: Show CITNOW for super_admin, showroom name for dealer_admin */}
+                  {role === 'super_admin' ? 'FOCUS' : (user?.showroom_name || 'Dealer Portal')}
+                </Typography>
+                {role === 'dealer_admin' && user?.showroom_name && (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: BMW.textSecondary,
+                      display: { xs: 'none', sm: 'block' },
+                      fontWeight: 500
+                    }}
+                  >
+                    Powered by Focus
+                  </Typography>
+                )}
+              </Box>
             </Box>
           </Box>
 
           {/* Center: Desktop Navigation */}
           {!isMobile && (
-            <Box sx={{ 
-              display: 'flex', 
+            <Box sx={{
+              display: 'flex',
               gap: 1,
               background: BMW.surface,
               borderRadius: 2,
@@ -414,20 +430,20 @@ export default function Navbar() {
 
             {/* User Avatar */}
             <Tooltip title="Account">
-              <IconButton 
+              <IconButton
                 onClick={openUserMenu}
                 sx={{
                   p: 0.5,
                   border: `2px solid ${BMW.border}`,
-                  '&:hover': { 
+                  '&:hover': {
                     borderColor: BMW.primary,
                     background: BMW.primaryUltraLight
                   }
                 }}
               >
-                <Avatar 
-                  sx={{ 
-                    width: 36, 
+                <Avatar
+                  sx={{
+                    width: 36,
                     height: 36,
                     bgcolor: BMW.primary,
                     fontWeight: 600,
@@ -448,8 +464,8 @@ export default function Navbar() {
         onClose={toggleDrawer}
         ModalProps={{ keepMounted: true }}
         sx={{
-          '& .MuiDrawer-paper': { 
-            boxSizing: 'border-box', 
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
             width: 280,
             border: 'none'
           }
@@ -481,11 +497,11 @@ export default function Navbar() {
           </Typography>
         </Box>
         <Divider />
-        
+
         {/* Edit Profile Menu Item */}
         <MenuItem
           onClick={handleEditClick}
-          sx={{ 
+          sx={{
             color: BMW.textPrimary,
             py: 1.5,
             '&:hover': {
@@ -498,10 +514,10 @@ export default function Navbar() {
           </ListItemIcon>
           <Typography variant="body2" fontWeight={500}>Edit Profile</Typography>
         </MenuItem>
-        
+
         <MenuItem
           onClick={() => { closeUserMenu(); logout(); }}
-          sx={{ 
+          sx={{
             color: BMW.textPrimary,
             py: 1.5,
             '&:hover': {
@@ -534,8 +550,8 @@ export default function Navbar() {
           }}
         >
           {/* Header */}
-          <Box sx={{ 
-            p: 2, 
+          <Box sx={{
+            p: 2,
             background: BMW.primaryUltraLight,
             borderBottom: `1px solid ${BMW.border}`,
             display: 'flex',
@@ -545,13 +561,13 @@ export default function Navbar() {
             <Typography variant="subtitle1" fontWeight={600} color={BMW.textPrimary}>
               Edit Profile
             </Typography>
-            <IconButton 
-              size="small" 
+            <IconButton
+              size="small"
               onClick={handleCancelEdit}
               disabled={loading}
-              sx={{ 
+              sx={{
                 color: BMW.textTertiary,
-                '&:hover': { 
+                '&:hover': {
                   background: 'rgba(0,0,0,0.04)',
                   color: BMW.textPrimary
                 }
@@ -560,7 +576,7 @@ export default function Navbar() {
               <Close fontSize="small" />
             </IconButton>
           </Box>
-          
+
           {/* Content */}
           <Box sx={{ p: 2.5 }}>
             {error && (
@@ -568,13 +584,13 @@ export default function Navbar() {
                 {error}
               </Alert>
             )}
-            
+
             {success && (
               <Alert severity="success" sx={{ mb: 2, borderRadius: 1 }}>
                 {success}
               </Alert>
             )}
-            
+
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {/* Username */}
               <TextField
@@ -590,7 +606,7 @@ export default function Navbar() {
                   }
                 }}
               />
-              
+
               {/* Email */}
               <TextField
                 label="Email"
@@ -606,7 +622,7 @@ export default function Navbar() {
                   }
                 }}
               />
-              
+
               {/* New Password with Eye Icon */}
               <TextField
                 label="New Password"
@@ -637,7 +653,7 @@ export default function Navbar() {
                   ),
                 }}
               />
-              
+
               {/* Confirm Password with Eye Icon */}
               <TextField
                 label="Confirm New Password"
@@ -668,11 +684,11 @@ export default function Navbar() {
                 }}
               />
             </Box>
-            
+
             {/* Actions */}
-            <Box sx={{ 
-              display: 'flex', 
-              gap: 1, 
+            <Box sx={{
+              display: 'flex',
+              gap: 1,
               mt: 3,
               justifyContent: 'flex-end'
             }}>
@@ -680,7 +696,7 @@ export default function Navbar() {
                 onClick={handleCancelEdit}
                 size="small"
                 disabled={loading}
-                sx={{ 
+                sx={{
                   color: BMW.textSecondary,
                   borderRadius: 1,
                   px: 2,
