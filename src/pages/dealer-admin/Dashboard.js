@@ -1180,17 +1180,7 @@ const processDashboardData = (allResults, timeRange) => {
                     Recent Video Analyses
                   </Typography>
                 </Box>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  sx={{
-                    borderColor: MODERN_BMW_THEME.primary,
-                    color: MODERN_BMW_THEME.primary,
-                    fontWeight: 500
-                  }}
-                >
-                  View All
-                </Button>
+                
               </Box>
 
               <TableContainer>
