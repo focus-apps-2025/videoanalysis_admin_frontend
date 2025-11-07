@@ -879,21 +879,7 @@ const processDashboardData = (allResults, timeRange) => {
           </Typography>
 
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-            <Box sx={{ textAlign: 'left' }}>
-              <Typography variant="h4" sx={{
-                fontWeight: 600,
-                color: MODERN_BMW_THEME.textPrimary,
-                mb: 1
-              }}>
-                {dealerInfo.name}
-              </Typography>
-              <Typography variant="body1" sx={{
-                color: MODERN_BMW_THEME.textSecondary,
-                fontWeight: 400
-              }}>
-                {dealerInfo.location} • Performance Dashboard
-              </Typography>
-            </Box>
+           
             <Button
               variant="contained"
               startIcon={<Refresh />}
