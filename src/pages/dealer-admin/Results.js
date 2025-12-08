@@ -171,6 +171,11 @@ export default function Results() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
+  const [allRows, setAllRows] = useState([]); // All loaded rows
+  const [currentPageBackend, setCurrentPageBackend] = useState(1); // Backend page number
+  const [hasMore, setHasMore] = useState(true); // More data to load
+
+
   // Dashboard stats
   const [stats, setStats] = useState({
     totalResults: 0,
@@ -184,18 +189,40 @@ export default function Results() {
     loadData();
   }, [refreshCounter]);
 
-  const loadData = async () => {
+ const loadData = async () => {
   setLoading(true);
   try {
-    const res = await api.get('/results');
-    const results = res.data || [];
-    setRows(results);
+    // Load first page
+    const res = await api.get('/results?page=1&per_page=100');
+    const data = res.data;
+    
+    // Handle NEW format
+    const results = data.results || data || []; // Support both formats
+    const totalCount = data.total || results.length; // Get total from backend
+    
+    // SET BOTH STATES
+    setRows(results); // For table display
+    setCurrentPageBackend(2); // Next backend page
+    // Get user stats for User Analytics section
+    const userRes = await api.get('/users/me');
+    const currentUser = userRes.data;
 
-    // Calculate stats
-    const total = results.length;
-    const avgVideo = results.reduce((sum, r) => sum + (r.video_analysis?.quality_score || 0), 0) / total || 0;
-    const avgAudio = results.reduce((sum, r) => sum + (r.audio_analysis?.score || 0), 0) / total || 0;
-    const avgOverall = results.reduce((sum, r) => sum + (r.overall_quality?.overall_score || 0), 0) / total || 0;
+    // Check if there's more data
+    if (results.length < 100) {
+      setHasMore(false);
+    } else if (data.has_more !== undefined) {
+      setHasMore(data.has_more);
+    }
+    
+    if (currentUser.dealer_id) {
+      const userStatsData = await getDealerUserStats(currentUser.dealer_id);
+      setUserStats(userStatsData);
+    }
+    
+    // Calculate stats from loaded results
+    const avgVideo = results.reduce((sum, r) => sum + (r.video_analysis?.quality_score || 0), 0) / results.length || 0;
+    const avgAudio = results.reduce((sum, r) => sum + (r.audio_analysis?.score || 0), 0) / results.length || 0;
+    const avgOverall = results.reduce((sum, r) => sum + (r.overall_quality?.overall_score || 0), 0) / results.length || 0;
 
     const distribution = { excellent: 0, good: 0, fair: 0, poor: 0 };
     results.forEach(r => {
@@ -206,28 +233,14 @@ export default function Results() {
       else distribution.poor++;
     });
 
+    // USE TOTAL COUNT FROM BACKEND for "Total Analyses"
     setStats({
-      totalResults: total,
+      totalResults: totalCount, // This shows 316
       averageVideoScore: avgVideo,
       averageAudioScore: avgAudio,
       averageOverallScore: avgOverall,
       qualityDistribution: distribution
     });
-
-    // NEW: Load user statistics
-    try {
-      // Get current user to determine dealer_id
-      const userRes = await api.get('/users/me');
-      const currentUser = userRes.data;
-      
-      if (currentUser.dealer_id) {
-        const userStatsData = await getDealerUserStats(currentUser.dealer_id);
-        setUserStats(userStatsData);
-      }
-    } catch (userStatsError) {
-      console.error('Error loading user stats:', userStatsError);
-      // Don't fail the entire load if user stats fail
-    }
 
   } catch (error) {
     console.error('Error loading results:', error);
@@ -237,26 +250,65 @@ export default function Results() {
   }
 };
 
+
+
   const handleViewDetails = (result) => {
     setSelectedResult(result);
     setDialogOpen(true);
   };
   
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this analysis record?')) return;
-    try {
-      await api.delete(`/results/${id}`);
-      setRows(rs => rs.filter(r => r._id !== id));
-    } catch (err) {
-      console.error(err);
-      alert('Failed to delete record.');
-    }
-  };
+  if (!window.confirm('Are you sure you want to delete this analysis record?')) return;
+  try {
+    await api.delete(`/results/${id}`);
+    setRows(rs => rs.filter(r => r._id !== id));
+    setAllRows(rs => rs.filter(r => r._id !== id));
+  } catch (err) {
+    console.error(err);
+    alert('Failed to delete record.');
+  }
+};
 
+const loadNextPage = async () => {
+  if (!hasMore) return;
+  
+  setLoading(true);
+  try {
+    const res = await api.get(`/results?page=${currentPageBackend}&per_page=100`);
+    const data = res.data;
+    const nextResults = data.results || data || [];
+    
+    // Add to rows
+    setRows(prev => [...prev, ...nextResults]);
+    
+    // Update page counter
+    setCurrentPageBackend(prev => prev + 1);
+    
+    // Check if still has more
+    if (nextResults.length < 100) {
+      setHasMore(false);
+    } else if (data.has_more !== undefined) {
+      setHasMore(data.has_more);
+    }
+    
+  } catch (error) {
+    console.error('Error loading next page:', error);
+  } finally {
+    setLoading(false);
+  }
+};
   // Pagination handlers
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
+ const handleChangePage = (event, newPage) => {
+  setPage(newPage);
+  
+  // Check if we need to load more data
+  const currentRowIndex = newPage * rowsPerPage;
+  
+  // If we're near the end of loaded data AND hasMore is true
+  if (hasMore && currentRowIndex >= allRows.length - 20) {
+    loadNextPage();
+  }
+};
 
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
@@ -334,17 +386,17 @@ export default function Results() {
     URL.revokeObjectURL(url);
   };
 
-  const filteredRows = rows.filter(r => {
-    const term = searchTerm.toLowerCase();
-    const dm = r.citnow_metadata || {};
-    return (
-      (dm.dealership || '').toLowerCase().includes(term) ||
-      (dm.vehicle || dm.registration || '').toLowerCase().includes(term) ||
-      (dm.email || '').toLowerCase().includes(term) ||
-      (dm.phone || '').toLowerCase().includes(term) ||
-      (dm.service_advisor || '').toLowerCase().includes(term)
-    );
-  });
+ const filteredRows = allRows.filter(r => {
+  const term = searchTerm.toLowerCase();
+  const dm = r.citnow_metadata || {};
+  return (
+    (dm.dealership || '').toLowerCase().includes(term) ||
+    (dm.vehicle || dm.registration || '').toLowerCase().includes(term) ||
+    (dm.email || '').toLowerCase().includes(term) ||
+    (dm.phone || '').toLowerCase().includes(term) ||
+    (dm.service_advisor || '').toLowerCase().includes(term)
+  );
+});
 
   // Get current page data
   const paginatedRows = filteredRows.slice(
@@ -1019,12 +1071,12 @@ export default function Results() {
                 {filteredRows.length > 0 && (
                   <TablePagination
                     rowsPerPageOptions={[5, 10, 25, 50]}
-                    component="div"
-                    count={filteredRows.length}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
-                    onPageChange={handleChangePage}
-                    onRowsPerPageChange={handleChangeRowsPerPage}
+  component="div"
+  count={filteredRows.length} // Uses allRows via filteredRows
+  rowsPerPage={rowsPerPage}
+  page={page}
+  onPageChange={handleChangePage}
+  onRowsPerPageChange={handleChangeRowsPerPage}
                     sx={{
                       borderTop: `1px solid ${MODERN_BMW_THEME.border}`,
                       '& .MuiTablePagination-toolbar': {
