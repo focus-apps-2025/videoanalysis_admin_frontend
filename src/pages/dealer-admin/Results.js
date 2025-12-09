@@ -188,7 +188,7 @@ export default function Results() {
 
   
 
- const loadData = async () => {
+const loadData = async () => {
   setLoading(true);
   try {
     // Load first page
@@ -208,11 +208,18 @@ export default function Results() {
     const userRes = await api.get('/users/me');
     const currentUser = userRes.data;
 
-    // Check if there's more data
-    if (results.length < 100) {
-      setHasMore(false);
-    } else if (data.has_more !== undefined) {
+    // ✅ FIX: Check if there's more data correctly
+    if (data.has_more !== undefined) {
+      // Use backend's has_more flag if available
       setHasMore(data.has_more);
+    } else if (data.total !== undefined) {
+      // If backend provides total, calculate has_more
+      const loadedCount = results.length;
+      const total = data.total;
+      setHasMore(loadedCount < total);
+    } else {
+      // Fallback: if we got exactly 100, assume there might be more
+      setHasMore(results.length === 100);
     }
     
     if (currentUser.dealer_id) {
@@ -254,6 +261,7 @@ export default function Results() {
     console.error('Error loading results:', error);
     setRows([]);
     setAllRows([]); // Also reset allRows on error
+    setHasMore(false); // Reset hasMore on error
   } finally {
     setLoading(false);
   }
@@ -282,7 +290,10 @@ useEffect(() => {
 };
 
 const loadNextPage = async () => {
-  if (!hasMore) return;
+  if (!hasMore) {
+    console.log('No more data to load');
+    return;
+  }
   
   setLoading(true);
   try {
@@ -290,22 +301,35 @@ const loadNextPage = async () => {
     const data = res.data;
     const nextResults = data.results || data || [];
     
-    // ✅ Update BOTH states
-    setRows(prev => [...prev, ...nextResults]);
-    setAllRows(prev => [...prev, ...nextResults]); // Also update allRows
+    console.log(`Loaded page ${currentPageBackend}: ${nextResults.length} results`);
     
-    // Update page counter
-    setCurrentPageBackend(prev => prev + 1);
-    
-    // Check if still has more
-    if (nextResults.length < 100) {
+    if (nextResults.length === 0) {
       setHasMore(false);
-    } else if (data.has_more !== undefined) {
-      setHasMore(data.has_more);
+      console.log('No more results, setting hasMore to false');
+    } else {
+      // ✅ Update BOTH states
+      setRows(prev => [...prev, ...nextResults]);
+      setAllRows(prev => [...prev, ...nextResults]); // Also update allRows
+      
+      // Update page counter
+      setCurrentPageBackend(prev => prev + 1);
+      
+      // ✅ Check if still has more based on backend response
+      if (data.has_more !== undefined) {
+        setHasMore(data.has_more);
+      } else if (data.total !== undefined) {
+        // Calculate if we've loaded all data
+        const totalLoaded = rows.length + nextResults.length;
+        setHasMore(totalLoaded < data.total);
+      } else {
+        // If we got fewer than 100 results, assume no more data
+        setHasMore(nextResults.length === 100);
+      }
     }
     
   } catch (error) {
     console.error('Error loading next page:', error);
+    setHasMore(false); // Stop trying if there's an error
   } finally {
     setLoading(false);
   }
@@ -314,11 +338,13 @@ const loadNextPage = async () => {
  const handleChangePage = (event, newPage) => {
   setPage(newPage);
   
-  // Check if we need to load more data
-  const currentRowIndex = newPage * rowsPerPage;
+  // Calculate the row index for the last item on the new page
+  const lastRowIndex = (newPage + 1) * rowsPerPage;
   
-  // If we're near the end of loaded data AND hasMore is true
-  if (hasMore && currentRowIndex >= allRows.length - 20) {
+  // Check if we need to load more data
+  // Load more when we're within 2 pages of the end of loaded data
+  if (hasMore && lastRowIndex >= allRows.length - (rowsPerPage * 2)) {
+    console.log(`Loading more data. Last row index: ${lastRowIndex}, All rows: ${allRows.length}`);
     loadNextPage();
   }
 };
@@ -327,6 +353,20 @@ const loadNextPage = async () => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
+
+  // Add this useEffect to debug pagination
+useEffect(() => {
+  console.log('📊 Pagination Debug:', {
+    page,
+    rowsPerPage,
+    allRowsCount: allRows.length,
+    rowsCount: rows.length,
+    currentPageBackend,
+    hasMore,
+    paginatedRowsCount: paginatedRows.length,
+    filteredRowsCount: filteredRows.length
+  });
+}, [page, rowsPerPage, allRows.length, rows.length, currentPageBackend, hasMore, paginatedRows.length, filteredRows.length]);
 
   const exportToCsv = () => {
     if (!filteredRows.length) {
