@@ -34,6 +34,7 @@ const MODERN_BMW_THEME = {
   textTertiary: '#94A3B8',
   success: '#10B981',
   successLight: '#D1FAE5',
+  successUltraLight: '#ECFDF5',
   warning: '#F59E0B',
   warningLight: '#FEF3C7',
   error: '#EF4444',
@@ -185,9 +186,7 @@ export default function Results() {
     qualityDistribution: { excellent: 0, good: 0, fair: 0, poor: 0 }
   });
 
-  useEffect(() => {
-    loadData();
-  }, [refreshCounter]);
+  
 
  const loadData = async () => {
   setLoading(true);
@@ -200,9 +199,11 @@ export default function Results() {
     const results = data.results || data || []; // Support both formats
     const totalCount = data.total || results.length; // Get total from backend
     
-    // SET BOTH STATES
+    // ✅ CRITICAL FIX: Update BOTH states
     setRows(results); // For table display
+    setAllRows(results); // For filtering and pagination
     setCurrentPageBackend(2); // Next backend page
+    
     // Get user stats for User Analytics section
     const userRes = await api.get('/users/me');
     const currentUser = userRes.data;
@@ -216,40 +217,51 @@ export default function Results() {
     
     if (currentUser.dealer_id) {
       const userStatsData = await getDealerUserStats(currentUser.dealer_id);
-      setUserStats(userStatsData);
+      // ✅ Ensure userStatsData is an array before setting
+      if (Array.isArray(userStatsData)) {
+        setUserStats(userStatsData);
+      } else {
+        console.warn('User stats data is not an array:', userStatsData);
+        setUserStats([]);
+      }
     }
     
-    // Calculate stats from loaded results
-    const avgVideo = results.reduce((sum, r) => sum + (r.video_analysis?.quality_score || 0), 0) / results.length || 0;
-    const avgAudio = results.reduce((sum, r) => sum + (r.audio_analysis?.score || 0), 0) / results.length || 0;
-    const avgOverall = results.reduce((sum, r) => sum + (r.overall_quality?.overall_score || 0), 0) / results.length || 0;
+    // ✅ FIX: Add array check before using .forEach()
+    if (Array.isArray(results)) {
+      const avgVideo = results.reduce((sum, r) => sum + (r.video_analysis?.quality_score || 0), 0) / results.length || 0;
+      const avgAudio = results.reduce((sum, r) => sum + (r.audio_analysis?.score || 0), 0) / results.length || 0;
+      const avgOverall = results.reduce((sum, r) => sum + (r.overall_quality?.overall_score || 0), 0) / results.length || 0;
 
-    const distribution = { excellent: 0, good: 0, fair: 0, poor: 0 };
-    results.forEach(r => {
-      const score = r.overall_quality?.overall_score || 0;
-      if (score >= 8) distribution.excellent++;
-      else if (score >= 6) distribution.good++;
-      else if (score >= 4) distribution.fair++;
-      else distribution.poor++;
-    });
+      const distribution = { excellent: 0, good: 0, fair: 0, poor: 0 };
+      results.forEach(r => {
+        const score = r.overall_quality?.overall_score || 0;
+        if (score >= 8) distribution.excellent++;
+        else if (score >= 6) distribution.good++;
+        else if (score >= 4) distribution.fair++;
+        else distribution.poor++;
+      });
 
-    // USE TOTAL COUNT FROM BACKEND for "Total Analyses"
-    setStats({
-      totalResults: totalCount, // This shows 316
-      averageVideoScore: avgVideo,
-      averageAudioScore: avgAudio,
-      averageOverallScore: avgOverall,
-      qualityDistribution: distribution
-    });
+      setStats({
+        totalResults: totalCount,
+        averageVideoScore: avgVideo,
+        averageAudioScore: avgAudio,
+        averageOverallScore: avgOverall,
+        qualityDistribution: distribution
+      });
+    }
 
   } catch (error) {
     console.error('Error loading results:', error);
     setRows([]);
+    setAllRows([]); // Also reset allRows on error
   } finally {
     setLoading(false);
   }
 };
 
+useEffect(() => {
+    loadData();
+  }, [refreshCounter]);
 
 
   const handleViewDetails = (result) => {
@@ -278,8 +290,9 @@ const loadNextPage = async () => {
     const data = res.data;
     const nextResults = data.results || data || [];
     
-    // Add to rows
+    // ✅ Update BOTH states
     setRows(prev => [...prev, ...nextResults]);
+    setAllRows(prev => [...prev, ...nextResults]); // Also update allRows
     
     // Update page counter
     setCurrentPageBackend(prev => prev + 1);
@@ -405,6 +418,8 @@ const loadNextPage = async () => {
   );
 
   const getUserName = (userId) => {
+  //  Add array check
+  if (!Array.isArray(userStats)) return null;
   const user = userStats.find(u => u.user_id === userId);
   return user ? user.username : null;
 };
@@ -488,7 +503,8 @@ const loadNextPage = async () => {
           </Grid>
         </Grid>
         {/* User Analysis Stats Section */}
-{userStats.length > 0 && (
+{/* User Analysis Stats Section */}
+{Array.isArray(userStats) && userStats.length > 0 ? (
   <Card sx={{
     background: MODERN_BMW_THEME.surfaceElevated,
     border: `1px solid ${MODERN_BMW_THEME.border}`,
@@ -512,101 +528,107 @@ const loadNextPage = async () => {
       </Box>
       
       <Grid container spacing={2}>
-        {userStats.map((user, index) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={user.user_id}>
-            <Card sx={{
-              background: MODERN_BMW_THEME.surface,
-              border: `1px solid ${MODERN_BMW_THEME.borderLight}`,
-              borderRadius: 2,
-              transition: 'all 0.2s ease-in-out',
-              '&:hover': {
-                boxShadow: MODERN_BMW_THEME.shadowMd,
-                transform: 'translateY(-2px)'
-              }
-            }}>
-              <CardContent sx={{ p: 2.5, textAlign: 'center' }}>
-                <Avatar
-                  sx={{
-                    width: 56,
-                    height: 56,
-                    background: MODERN_BMW_THEME.gradientPrimary,
-                    fontWeight: 600,
-                    fontSize: '18px',
-                    mb: 2,
-                    mx: 'auto'
-                  }}
-                >
-                  {user.username.charAt(0).toUpperCase()}
-                </Avatar>
-                
-                <Typography variant="h6" sx={{
-                  color: MODERN_BMW_THEME.textPrimary,
-                  fontWeight: 600,
-                  mb: 0.5
-                }}>
-                  {user.username}
-                </Typography>
-                
-                <Typography variant="body2" sx={{
-                  color: MODERN_BMW_THEME.textSecondary,
-                  mb: 1
-                }}>
-                  {user.email}
-                </Typography>
-                
-                <Chip
-                  label={user.role === 'dealer_admin' ? 'Admin' : 'User'}
-                  size="small"
-                  sx={{
-                    background: user.role === 'dealer_admin' 
-                      ? MODERN_BMW_THEME.primaryUltraLight 
-                      : MODERN_BMW_THEME.successLight,
-                    color: user.role === 'dealer_admin' 
-                      ? MODERN_BMW_THEME.primary 
-                      : MODERN_BMW_THEME.success,
-                    fontWeight: 600,
-                    mb: 2
-                  }}
-                />
-                
-                <Box sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 1,
-                  background: MODERN_BMW_THEME.primaryUltraLight,
-                  borderRadius: 2,
-                  py: 1,
-                  border: `1px solid ${MODERN_BMW_THEME.primary}20`
-                }}>
-                  <VideoLibrary sx={{ 
-                    fontSize: 20, 
-                    color: MODERN_BMW_THEME.primary 
-                  }} />
+        {userStats.map((user, index) => {
+          // ✅ Add null checks for user properties
+          const username = user?.username || 'Unknown User';
+          const email = user?.email || 'No email';
+          const role = user?.role || 'unknown';
+          const videosAnalyzed = user?.videos_analyzed || 0;
+          const userId = user?.user_id || `user-${index}`;
+          
+          return (
+            <Grid item xs={12} sm={6} md={4} lg={3} key={userId}>
+              <Card sx={{
+                background: MODERN_BMW_THEME.surface,
+                border: `1px solid ${MODERN_BMW_THEME.borderLight}`,
+                borderRadius: 2,
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  boxShadow: MODERN_BMW_THEME.shadowMd,
+                  transform: 'translateY(-2px)'
+                }
+              }}>
+                <CardContent sx={{ p: 2.5, textAlign: 'center' }}>
+                  <Avatar
+                    sx={{
+                      width: 56,
+                      height: 56,
+                      background: MODERN_BMW_THEME.gradientPrimary,
+                      fontWeight: 600,
+                      fontSize: '18px',
+                      mb: 2,
+                      mx: 'auto'
+                    }}
+                  >
+                    {username.charAt(0).toUpperCase()}
+                  </Avatar>
+                  
                   <Typography variant="h6" sx={{
-                    color: MODERN_BMW_THEME.primary,
-                    fontWeight: 700
+                    color: MODERN_BMW_THEME.textPrimary,
+                    fontWeight: 600,
+                    mb: 0.5
                   }}>
-                    {user.videos_analyzed}
+                    {username}
                   </Typography>
+                  
                   <Typography variant="body2" sx={{
                     color: MODERN_BMW_THEME.textSecondary,
-                    fontWeight: 500
+                    mb: 1
                   }}>
-                    videos
+                    {email}
                   </Typography>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
+                  
+                  <Chip
+                    label={role === 'dealer_admin' ? 'Admin' : 'User'}
+                    size="small"
+                    sx={{
+                      background: role === 'dealer_admin' 
+                        ? MODERN_BMW_THEME.primaryUltraLight 
+                        : MODERN_BMW_THEME.successLight,
+                      color: role === 'dealer_admin' 
+                        ? MODERN_BMW_THEME.primary 
+                        : MODERN_BMW_THEME.success,
+                      fontWeight: 600,
+                      mb: 2
+                    }}
+                  />
+                  
+                  <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 1,
+                    background: MODERN_BMW_THEME.primaryUltraLight,
+                    borderRadius: 2,
+                    py: 1,
+                    border: `1px solid ${MODERN_BMW_THEME.primary}20`
+                  }}>
+                    <VideoLibrary sx={{ 
+                      fontSize: 20, 
+                      color: MODERN_BMW_THEME.primary 
+                    }} />
+                    <Typography variant="h6" sx={{
+                      color: MODERN_BMW_THEME.primary,
+                      fontWeight: 700
+                    }}>
+                      {videosAnalyzed}
+                    </Typography>
+                    <Typography variant="body2" sx={{
+                      color: MODERN_BMW_THEME.textSecondary,
+                      fontWeight: 500
+                    }}>
+                      videos
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          );
+        })}
       </Grid>
     </CardContent>
   </Card>
-)}
-
-        
-        
+) : null}
 
         {/* Results Table Section */}
         <Card sx={{
