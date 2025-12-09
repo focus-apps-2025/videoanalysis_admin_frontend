@@ -27,11 +27,38 @@ export const listDealerUsers = async (dealerId) => {
 // 🔹 Get user statistics including video counts
 export const getDealerUserStats = async (dealerId) => {
   try {
+    console.log(`📡 Fetching user stats for dealer: ${dealerId}`);
     const res = await api.get(`/dashboard/dealer/${dealerId}/user-stats`);
-    return res.data;
+    console.log('📡 Raw API response:', res.data);
+    console.log('📡 Type of response:', typeof res.data);
+    console.log('📡 Is array?', Array.isArray(res.data));
+    
+    const data = res.data;
+    
+    // ALWAYS return an array
+    if (Array.isArray(data)) {
+      return data;
+    }
+    
+    // If it's an object but not an array, check for common structures
+    if (data && typeof data === 'object') {
+      if (data.users && Array.isArray(data.users)) {
+        return data.users;
+      }
+      // Try to convert object values to array
+      const values = Object.values(data);
+      if (values.length > 0) {
+        return values;
+      }
+    }
+    
+    // Fallback to empty array
+    return [];
+    
   } catch (err) {
-    //console.error('Error fetching dealer user stats:', err);
-    throw err;
+    console.error('❌ Error fetching dealer user stats:', err);
+    // Don't throw - return empty array instead
+    return [];
   }
 };
 
