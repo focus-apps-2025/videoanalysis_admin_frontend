@@ -538,15 +538,39 @@ const QualityBreakdownChart = ({ data }) => (
     </RechartsPieChart>
   </ResponsiveContainer>
 );
-  const loadDashboardData = async () => {
+ const loadDashboardData = async () => {
   setLoading(true);
   setError(null);
   try {
     // Single API call to get all results
-    const allResults = await dashboardApi.getDealerDashboard(timeRange);
+    const response = await dashboardApi.getDealerDashboard(timeRange);
     
-    // Process data on frontend (we'll create these functions)
-    const processedData = processDashboardData(allResults, timeRange);
+    console.log('📊 Raw API response:', response);
+    console.log('📊 Type:', typeof response);
+    
+    // Handle different response formats
+    let resultsArray = [];
+    
+    if (Array.isArray(response)) {
+      // Already an array (old format)
+      resultsArray = response;
+    } else if (response && response.results && Array.isArray(response.results)) {
+      // New format with pagination metadata
+      console.log('✅ Found results array in response.results');
+      resultsArray = response.results;
+    } else if (response && typeof response === 'object') {
+      // Try to convert object values to array
+      console.log('⚠️ Trying to extract array from object');
+      const values = Object.values(response);
+      if (values.length > 0 && Array.isArray(values[0])) {
+        resultsArray = values[0];
+      }
+    }
+    
+    console.log(`✅ Processed ${resultsArray.length} results`);
+    
+    // Process data on frontend
+    const processedData = processDashboardData(resultsArray, timeRange);
     
     // Update dealer info
     setDealerInfo({
@@ -745,7 +769,14 @@ const calculateDailyPerformance = (filteredResults, timeRange) => {
 };
 
 // Main function to process all dashboard data
+
 const processDashboardData = (allResults, timeRange) => {
+  // Ensure allResults is an array
+  if (!Array.isArray(allResults)) {
+    console.warn('processDashboardData: allResults is not an array:', allResults);
+    allResults = [];
+  }
+  
   const filteredResults = filterByTimeRange(allResults, timeRange);
   
   return {
